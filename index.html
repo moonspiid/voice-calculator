@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#0a0b10">
+<title>Calculatrice vocale</title>
+<style>
+  :root{
+    --bg:#0a0b10;
+    --panel:#12131a;
+    --key:#1e2029;
+    --key-active:#2c2f3d;
+    --fn:#272a35;
+    --accent:#ffb26b;
+    --op:#ff8a3d;
+    --text:#f5f7ff;
+    --muted:#6f748a;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    margin:0;display:grid;place-items:center;overflow:hidden;
+    background:radial-gradient(120% 90% at 50% 0%,#171a26 0%,var(--bg) 60%);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    color:var(--text);
+  }
+  .app{
+    width:min(100vw,400px);
+    height:min(calc(100vh - 24px),860px);
+    height:min(calc(100dvh - 24px),860px);
+    background:var(--panel);
+    border:1px solid #21232e;
+    border-radius:30px;
+    box-shadow:0 30px 80px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.04);
+    display:flex;flex-direction:column;overflow:hidden;
+  }
+  @media (max-width:440px){
+    .app{width:100vw;height:100vh;height:100dvh;border:0;border-radius:0;box-shadow:none}
+  }
+
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 20px 0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;
+  }
+  .brand{color:var(--muted)}
+  .badge{display:flex;align-items:center;gap:6px;color:var(--muted);text-transform:none;letter-spacing:0}
+  .dot{width:7px;height:7px;border-radius:50%;background:#4b5062;transition:background .2s,box-shadow .2s}
+  .badge.on .dot{background:#43d17c;box-shadow:0 0 10px #43d17c}
+  .badge.listen .dot{background:#ff8a3d;box-shadow:0 0 12px #ff8a3d;animation:blink 1s infinite}
+  @keyframes blink{50%{opacity:.25}}
+
+  .display{
+    flex:1 1 0;min-height:78px;
+    display:flex;flex-direction:column;justify-content:flex-end;
+    align-items:flex-end;gap:6px;
+    padding:clamp(10px,3vh,26px) clamp(16px,5vw,22px) 8px;
+    overflow:hidden;
+  }
+  .history{
+    font-size:clamp(12px,3.6vw,15px);color:var(--muted);min-height:18px;
+    max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .result{
+    font-size:clamp(32px,12vw,58px);font-weight:300;line-height:1.05;letter-spacing:-.02em;
+    max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .transcript{
+    font-size:clamp(10px,3vw,12px);color:#565b70;min-height:14px;
+    max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    font-style:italic;
+  }
+
+  .keypad{
+    flex:1.45 1 0;min-height:0;
+    display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(5,1fr);
+    gap:clamp(6px,1.8vw,12px);
+    padding:0 clamp(10px,4vw,18px) clamp(6px,1.6vh,12px);
+  }
+  .key{
+    display:grid;place-items:center;min-width:0;min-height:0;
+    border:0;border-radius:clamp(14px,4vw,20px);
+    background:var(--key);color:var(--text);
+    font:inherit;font-size:clamp(17px,5.2vw,24px);font-weight:500;
+    cursor:pointer;user-select:none;
+    transition:background .12s ease,transform .08s ease;
+  }
+  .key:active{background:var(--key-active);transform:scale(.96)}
+  .key.fn{background:var(--fn);color:var(--accent);font-weight:600}
+  .key.fn:active{background:#343849}
+  .key.op{background:var(--op);color:#20140a;font-size:clamp(19px,5.8vw,26px);font-weight:700}
+  .key.op:active{background:#ffa163}
+  .key.eq{background:linear-gradient(180deg,#ffa24f,#ff7a28);color:#20140a;font-weight:700;
+          box-shadow:0 8px 20px rgba(255,130,50,.28)}
+  .key.eq:active{background:linear-gradient(180deg,#ffb877,#ff8c3d)}
+
+  .voice{
+    flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:6px;
+    padding:6px clamp(16px,5vw,22px) calc(14px + env(safe-area-inset-bottom));
+    border-top:1px solid #1d1f28;
+  }
+  .mic{
+    position:relative;width:74px;height:74px;border-radius:50%;border:0;cursor:pointer;
+    background:radial-gradient(120% 120% at 30% 20%,#ff9d4d,#f2691a);
+    display:grid;place-items:center;
+    box-shadow:0 14px 28px rgba(242,105,26,.35),inset 0 1px 0 rgba(255,255,255,.35);
+    transition:transform .1s ease,box-shadow .2s ease;
+  }
+  .mic:active{transform:scale(.94)}
+  .mic svg{width:32px;height:32px;fill:#241307}
+  .mic::after{
+    content:"";position:absolute;inset:-8px;border-radius:50%;
+    border:2px solid rgba(255,138,61,.55);opacity:0;pointer-events:none;
+  }
+  .mic.listening{
+    background:radial-gradient(120% 120% at 30% 20%,#ff6b6b,#d92a2a);
+    box-shadow:0 14px 32px rgba(217,42,42,.5),inset 0 1px 0 rgba(255,255,255,.3);
+  }
+  .mic.listening::after{opacity:1;animation:pulse 1.5s ease-out infinite}
+  @keyframes pulse{
+    0%{transform:scale(1);opacity:.85}
+    100%{transform:scale(1.45);opacity:0}
+  }
+  .hint{
+    margin:0;font-size:clamp(10px,2.9vw,12px);color:var(--muted);
+    text-align:center;line-height:1.35;max-width:290px;
+  }
+</style>
+</head>
+<body>
+<main class="app" aria-label="Calculatrice vocale">
+
+  <header class="topbar">
+    <span class="brand">Calculatrice</span>
+    <span class="badge" id="badge"><i class="dot"></i><span id="badgeText">Vocal prêt</span></span>
+  </header>
+
+  <section class="display" aria-live="polite">
+    <div class="history" id="history"></div>
+    <div class="result" id="result">0</div>
+    <div class="transcript" id="transcript"></div>
+  </section>
+
+  <section class="keypad">
+    <button class="key fn" data-key="ac" aria-label="Tout effacer">AC</button>
+    <button class="key fn" data-key="del" aria-label="Effacer le dernier chiffre">⌫</button>
+    <button class="key fn" data-key="%" aria-label="Pourcentage">%</button>
+    <button class="key op" data-key="/" aria-label="Diviser">÷</button>
+
+    <button class="key" data-key="7">7</button>
+    <button class="key" data-key="8">8</button>
+    <button class="key" data-key="9">9</button>
+    <button class="key op" data-key="*" aria-label="Multiplier">×</button>
+
+    <button class="key" data-key="4">4</button>
+    <button class="key" data-key="5">5</button>
+    <button class="key" data-key="6">6</button>
+    <button class="key op" data-key="-" aria-label="Soustraire">−</button>
+
+    <button class="key" data-key="1">1</button>
+    <button class="key" data-key="2">2</button>
+    <button class="key" data-key="3">3</button>
+    <button class="key op" data-key="+" aria-label="Additionner">+</button>
+
+    <button class="key fn" data-key="neg" aria-label="Changer le signe">±</button>
+    <button class="key" data-key="0">0</button>
+    <button class="key" data-key="." aria-label="Virgule">.</button>
+    <button class="key eq" data-key="=" aria-label="Résultat">=</button>
+  </section>
+
+  <section class="voice">
+    <button class="mic" id="mic" aria-label="Dicter un calcul">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 15a3.5 3.5 0 0 0 3.5-3.5v-5a3.5 3.5 0 0 0-7 0v5A3.5 3.5 0 0 0 12 15Z"/>
+        <path d="M18 11.5a1 1 0 1 0-2 0 4 4 0 0 1-8 0 1 1 0 1 0-2 0 6 6 0 0 0 5 5.92V20H8.5a1 1 0 1 0 0 2h7a1 1 0 1 0 0-2H13v-2.58A6 6 0 0 0 18 11.5Z"/>
+      </svg>
+    </button>
+    <p class="hint" id="hint">Touchez le micro et dictez « deux plus trois fois quatre »</p>
+  </section>
+
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  const resultEl     = document.getElementById("result");
+  const historyEl    = document.getElementById("history");
+  const transcriptEl = document.getElementById("transcript");
+  const hintEl       = document.getElementById("hint");
+  const badgeEl      = document.getElementById("badge");
+  const badgeTextEl  = document.getElementById("badgeText");
+  const micEl        = document.getElementById("mic");
+  const DEFAULT_HINT = hintEl.textContent;
+
+  /* ---------- État de la calculatrice ---------- */
+  let expr = "";          // expression interne, ex. "12+3*4"
+  let justEval = false;   // vrai juste après un "="
+  let resetTimer = null;
+
+  const pretty = (s) =>
+    s.replace(/\*/g, "×").replace(/\//g, "÷").replace(/-/g, "−").replace(/\./g, ",");
+
+  function render() {
+    resultEl.textContent = expr === "" ? "0" : pretty(expr);
+  }
+
+  function resetAll() {
+    clearTimeout(resetTimer);
+    expr = "";
+    justEval = false;
+    historyEl.textContent = "";
+    transcriptEl.textContent = "";
+    render();
+    hintEl.textContent = DEFAULT_HINT;
+    setBadge("idle");
+  }
+
+  /* ---------- Saisie tactile ---------- */
+  function appendDigit(d) {
+    const tail = (expr.match(/(\d*\.?\d*)$/) || ["", ""])[1];
+    if (d === ".") {
+      if (tail.includes(".")) return;
+      expr += tail === "" ? "0." : ".";
+      return;
+    }
+    if (tail === "0") {
+      expr = expr.slice(0, -1) + d;
+      return;
+    }
+    expr += d;
+  }
+
+  function press(key) {
+    clearTimeout(resetTimer);
+
+    if (/^[0-9]$/.test(key)) {
+      if (justEval) { expr = ""; justEval = false; historyEl.textContent = ""; }
+      appendDigit(key);
+    } else if (key === ".") {
+      if (justEval) { expr = "0"; justEval = false; historyEl.textContent = ""; }
+      appendDigit(".");
+    } else if (key === "ac") {
+      resetAll();
+      return;
+    } else if (key === "del") {
+      if (justEval) { expr = ""; justEval = false; }
+      else expr = expr.slice(0, -1);
+    } else if (key === "%") {
+      const tail = (expr.match(/(\d*\.?\d*)$/) || ["", ""])[1];
+      if (!tail) return;
+      const value = parseFloat(tail) / 100;
+      expr = expr.slice(0, expr.length - tail.length) + String(value);
+    } else if (key === "neg") {
+      const tail = (expr.match(/(\d*\.?\d*)$/) || ["", ""])[1];
+      if (!tail) return;
+      const before = expr.slice(0, expr.length - tail.length);
+      expr = before.endsWith("-") ? before.slice(0, -1) + tail : before + "-" + tail;
+    } else if (key === "=") {
+      if (justEval) return;
+      const value = safeEval(expr);
+      if (value === null) {
+        resultEl.textContent = "Erreur";
+        return;
+      }
+      historyEl.textContent = pretty(expr) + " =";
+      expr = String(value);
+      justEval = true;
+    } else {
+      // opérateur
+      if (expr === "") {
+        if (key === "-") expr = "-";
+        else return;
+      } else if (/[+\-*/]$/.test(expr)) {
+        expr = expr.slice(0, -1) + key;
+      } else if (expr.endsWith(".")) {
+        expr = expr.slice(0, -1) + key;
+      } else {
+        expr += key;
+      }
+      justEval = false;
+    }
+    render();
+  }
+
+  document.querySelectorAll(".key").forEach((btn) => {
+    btn.addEventListener("click", () => press(btn.dataset.key));
+  });
+
+  /* ---------- Évaluation sûre ---------- */
+  function safeEval(expression) {
+    if (!expression) return null;
+    if (/[^0-9+\-*/().]/.test(expression)) return null;
+    if (/[+\-*/.]$/.test(expression)) return null;
+    try {
+      const value = Function('"use strict";return (' + expression + ')')();
+      if (typeof value !== "number" || !isFinite(value)) return null;
+      return Math.round(value * 1e10) / 1e10;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /* ---------- Conversion parole -> équation ---------- */
+  const NUM_WORDS = {
+    zero: 0, un: 1, une: 1, deux: 2, trois: 3, quatre: 4, cinq: 5, six: 6,
+    sept: 7, huit: 8, neuf: 9, dix: 10, onze: 11, douze: 12, treize: 13,
+    quatorze: 14, quinze: 15, seize: 16, vingt: 20, trente: 30, quarante: 40,
+    cinquante: 50, soixante: 60, cent: 100, cents: 100,
+    mille: 1000, milliers: 1000, million: 1000000, millions: 1000000
+  };
+
+  const isNumWord = (w) => Object.prototype.hasOwnProperty.call(NUM_WORDS, w);
+
+  function parseFrWords(words) {
+    let total = 0, current = 0;
+    for (const w of words) {
+      const v = NUM_WORDS[w];
+      if (v === undefined) continue;
+      if (v === 1000 || v === 1000000) {
+        current = (current || 1) * v;
+        total += current;
+        current = 0;
+      } else if (v === 100) {
+        current = (current || 1) * 100;
+      } else if (v >= 20 && v % 10 === 0 && current > 0 && current < 10) {
+        current *= v;                 // quatre vingt -> 80
+      } else {
+        current += v;
+      }
+    }
+    return total + current;
+  }
+
+  function wordsToDigits(s) {
+    const tokens = s.split(/\s+/).filter(Boolean);
+    const out = [];
+    for (let i = 0; i < tokens.length; i++) {
+      if (isNumWord(tokens[i])) {
+        const run = [];
+        while (i < tokens.length) {
+          if (isNumWord(tokens[i])) { run.push(tokens[i]); i++; }
+          else if (tokens[i] === "et" && tokens[i + 1] && isNumWord(tokens[i + 1])) { i++; }
+          else break;
+        }
+        i--;
+        out.push(String(parseFrWords(run)));
+      } else {
+        out.push(tokens[i]);
+      }
+    }
+    return out.join(" ");
+  }
+
+  function speechToEquation(text) {
+    let s = String(text).toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")   // accents
+      .replace(/[’']/g, " ")
+      .replace(/-/g, " ")                                 // dix-sept -> dix sept
+      .replace(/÷/g, "/").replace(/×/g, "*").replace(/,\s*/g, " ")
+      .replace(/\s+/g, " ").trim();
+
+    s = s.replace(/\bvirgule\b/g, " , ");
+
+    // mots parasites
+    s = s.replace(/\b(egal|egale|egales|egaux|font|fait|resultat|donne|combien|est|ca)\b/g, " ");
+
+    // mots opérateurs
+    s = s.replace(/\bdivis(e|er|ee|es)?\s+par\b/g, " / ")
+         .replace(/\bdivise\b/g, " / ")
+         .replace(/\bsur\b/g, " / ")
+         .replace(/\bmultipli(e|er|ee|es)\s+par\b/g, " * ")
+         .replace(/\bfois\b/g, " * ")
+         .replace(/\bpour\s*cent\b/g, " % ")
+         .replace(/\bpourcent\b/g, " % ")
+         .replace(/\bplus\b/g, " + ")
+         .replace(/\bmoins\b/g, " - ")
+         .replace(/(^|[^a-z])x(?=[^a-z]|$)/g, "$1 * ");
+
+    s = wordsToDigits(s);
+    s = s.replace(/\s*,\s*/g, ".");            // virgule décimale
+    s = s.replace(/[^0-9+\-*/%.()]/g, "");     // sécurité
+    s = s.replace(/\s+/g, "");
+
+    return s;
+  }
+
+  /* ---------- Web Speech API ---------- */
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let recognition = null;
+  let listening = false;
+  let finalText = "";
+
+  function setBadge(state) {
+    badgeEl.className = "badge";
+    if (state === "listen") { badgeEl.classList.add("on", "listen"); badgeTextEl.textContent = "Écoute…"; }
+    else if (state === "on") { badgeEl.classList.add("on"); badgeTextEl.textContent = "Micro actif"; }
+    else { badgeTextEl.textContent = "Vocal prêt"; }
+  }
+
+  function setListening(on) {
+    listening = on;
+    micEl.classList.toggle("listening", on);
+    micEl.setAttribute("aria-pressed", on ? "true" : "false");
+    setBadge(on ? "listen" : "idle");
+    hintEl.textContent = on ? "Je vous écoute…" : DEFAULT_HINT;
+  }
+
+  if (!SR) {
+    micEl.addEventListener("click", () => {
+      hintEl.textContent = "Reconnaissance vocale indisponible sur ce navigateur. Utilisez Chrome, Edge ou Safari.";
+    });
+  } else {
+    recognition = new SR();
+    recognition.lang = "fr-FR";
+    recognition.interimResults = true;
+    recognition.continuous = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      finalText = "";
+      transcriptEl.textContent = "";
+      setListening(true);
+    };
+
+    recognition.onresult = (event) => {
+      let interim = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const chunk = event.results[i][0].transcript;
+        if (event.results[i].isFinal) finalText += chunk + " ";
+        else interim += chunk;
+      }
+      transcriptEl.textContent = (finalText + interim).trim();
+    };
+
+    recognition.onerror = (event) => {
+      setListening(false);
+      if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+        hintEl.textContent = "Micro refusé. Autorisez le microphone dans le navigateur.";
+      } else if (event.error === "no-speech") {
+        hintEl.textContent = "Aucune parole détectée. Réessayez.";
+      } else {
+        hintEl.textContent = "Erreur micro (" + event.error + "). Réessayez.";
+      }
+    };
+
+    recognition.onend = () => {
+      setListening(false);
+      const spoken = finalText.trim();
+      if (spoken) handleVoice(spoken);
+    };
+
+    micEl.addEventListener("click", () => {
+      if (listening) { recognition.stop(); return; }
+      clearTimeout(resetTimer);
+      resetAll();
+      hintEl.textContent = "Je vous écoute…";
+      try { recognition.start(); }
+      catch (e) { hintEl.textContent = "Impossible de démarrer le micro. Réessayez."; }
+    });
+  }
+
+  /* ---------- Traitement de la commande vocale ---------- */
+  function handleVoice(text) {
+    transcriptEl.textContent = "« " + text + " »";
+    const equation = speechToEquation(text);
+
+    if (!equation) {
+      hintEl.textContent = "Calcul non reconnu. Dictez par exemple « douze divisé par quatre ».";
+      return;
+    }
+
+    const value = safeEval(equation.replace(/%/g, "/100"));
+    if (value === null) {
+      historyEl.textContent = pretty(equation);
+      hintEl.textContent = "Calcul incomplet. Réessayez.";
+      return;
+    }
+
+    historyEl.textContent = pretty(equation) + " =";
+    expr = String(value);
+    justEval = true;
+    render();
+
+    hintEl.textContent = "Résultat affiché. Prêt pour le calcul suivant…";
+    setBadge("on");
+    resetTimer = setTimeout(resetAll, 2800);
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
