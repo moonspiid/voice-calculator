@@ -51,7 +51,8 @@
     display:flex;align-items:center;justify-content:space-between;
     padding:14px 20px 0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;
   }
-  .brand{color:var(--muted)}
+  .brand{display:flex;align-items:center;gap:7px;color:var(--muted)}
+  .logo{display:block;width:20px;height:20px;border-radius:6px;flex:0 0 auto}
   .badge{display:flex;align-items:center;gap:6px;color:var(--muted);text-transform:none;letter-spacing:0}
   .dot{width:7px;height:7px;border-radius:50%;background:#4b5062;transition:background .2s,box-shadow .2s}
   .badge.on .dot{background:#43d17c;box-shadow:0 0 10px #43d17c}
@@ -70,7 +71,7 @@
     max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   }
   .result{
-    font-size:clamp(32px,12vw,58px);font-weight:300;line-height:1.05;letter-spacing:-.02em;
+    font-size:clamp(38px,14.5vw,72px);font-weight:300;line-height:1.02;letter-spacing:-.02em;
     max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   }
   .transcript{
@@ -80,7 +81,7 @@
   }
 
   .keypad{
-    flex:1.45 1 0;min-height:0;
+    flex:1.4 1 0;min-height:0;
     display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(5,1fr);
     gap:clamp(6px,1.8vw,12px);
     padding:0 clamp(10px,4vw,18px) clamp(6px,1.6vh,12px);
@@ -99,7 +100,7 @@
   .key.op{background:var(--op);color:#20140a;font-size:clamp(19px,5.8vw,26px);font-weight:700}
   .key.op:active{background:#ffa163}
   .key.eq{background:linear-gradient(180deg,#ffa24f,#ff7a28);color:#20140a;font-weight:700;
-          box-shadow:0 8px 20px rgba(255,130,50,.28)}
+    box-shadow:0 8px 20px rgba(255,130,50,.28)}
   .key.eq:active{background:linear-gradient(180deg,#ffb877,#ff8c3d)}
 
   .voice{
@@ -146,7 +147,7 @@
   }
 
   .legal{
-    margin:2px 0 0;display:flex;align-items:center;justify-content:center;gap:7px;
+    margin:2px 0 0;display:flex;align-items:center;justify-content:center;gap:6px;
     font-size:clamp(9px,2.6vw,11px);color:#3f4457;letter-spacing:.01em;
   }
   .legal a,.legal button{
@@ -183,7 +184,10 @@
 <main class="app" aria-label="Calculatrice vocale">
 
   <header class="topbar">
-    <span class="brand">Calculatrice</span>
+    <span class="brand">
+      <img class="logo" src="icon.svg" alt="" width="20" height="20">
+      Calculatrice
+    </span>
     <span class="badge" id="badge"><i class="dot"></i><span id="badgeText">Vocal prêt</span></span>
   </header>
 
@@ -239,6 +243,8 @@
     <p class="legal">
       <span>© 2026 moonspiid</span>
       <span class="sep">·</span>
+      <a href="https://x.com/moonspiid" target="_blank" rel="noopener noreferrer">X</a>
+      <span class="sep">·</span>
       <a href="https://github.com/moonspiid/voice-calculator" target="_blank" rel="noopener noreferrer">GitHub</a>
       <span class="sep">·</span>
       <button type="button" id="donateBtn">Donate</button>
@@ -271,8 +277,8 @@
   const DEFAULT_HINT = hintEl.textContent;
 
   /* ---------- État de la calculatrice ---------- */
-  let expr = "";          // expression interne, ex. "12+3*4"
-  let justEval = false;   // vrai juste après un "="
+  let expr = "";
+  let justEval = false;
   let resetTimer = null;
 
   const pretty = (s) =>
@@ -431,9 +437,9 @@
 
   function speechToEquation(text) {
     let s = String(text).toLowerCase()
-      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")   // accents
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
       .replace(/[’']/g, " ")
-      .replace(/-/g, " ")                                 // dix-sept -> dix sept
+      .replace(/-/g, " ")
       .replace(/÷/g, "/").replace(/×/g, "*").replace(/,\s*/g, " ")
       .replace(/\s+/g, " ").trim();
 
@@ -586,7 +592,6 @@
 
   const isStandalone = window.matchMedia("(display-mode: standalone)").matches ||
     window.navigator.standalone === true;
-
   // iPhone / iPad : pas de beforeinstallprompt, on affiche l'explication
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
   if (isIOS && !isStandalone) installBtn.hidden = false;
