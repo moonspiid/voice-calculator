@@ -4,7 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
 <meta name="theme-color" content="#0a0b10">
+<meta name="description" content="Calculatrice mobile vocale : dictez le calcul, la Web Speech API le transforme en équation, le résultat s'affiche puis tout se réinitialise.">
 <title>Calculatrice vocale</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Calculatrice">
 <style>
   :root{
     --bg:#0a0b10;
@@ -99,6 +107,17 @@
     padding:6px clamp(16px,5vw,22px) calc(14px + env(safe-area-inset-bottom));
     border-top:1px solid #1d1f28;
   }
+  .install{
+    display:inline-flex;align-items:center;gap:6px;
+    border:0;border-radius:999px;cursor:pointer;
+    padding:7px 14px;margin:0 0 2px;
+    background:var(--fn);color:var(--accent);
+    font:inherit;font-size:clamp(11px,3vw,12px);font-weight:600;letter-spacing:.01em;
+    transition:background .12s ease,transform .08s ease;
+  }
+  .install:active{background:#343849;transform:scale(.96)}
+  .install svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .install[hidden]{display:none}
   .mic{
     position:relative;width:74px;height:74px;border-radius:50%;border:0;cursor:pointer;
     background:radial-gradient(120% 120% at 30% 20%,#ff9d4d,#f2691a);
@@ -169,6 +188,14 @@
   </section>
 
   <section class="voice">
+    <button class="install" id="install" type="button" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 3v10"/>
+        <path d="m8 13 4 4 4-4"/>
+        <path d="M5 18v1a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-1"/>
+      </svg>
+      Installer l’application
+    </button>
     <button class="mic" id="mic" aria-label="Dicter un calcul">
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path d="M12 15a3.5 3.5 0 0 0 3.5-3.5v-5a3.5 3.5 0 0 0-7 0v5A3.5 3.5 0 0 0 12 15Z"/>
@@ -488,6 +515,60 @@
   }
 
   render();
+})();
+</script>
+
+<script>
+/* ---------- Installation en tant qu'application ---------- */
+(function () {
+  "use strict";
+
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("sw.js").catch(function () {});
+    });
+  }
+
+  const installBtn = document.getElementById("install");
+  const hintEl = document.getElementById("hint");
+  const HINT = hintEl.textContent;
+  let deferredPrompt = null;
+
+  const isStandalone = window.matchMedia("(display-mode: standalone)").matches ||
+    window.navigator.standalone === true;
+
+  // iPhone / iPad : pas de beforeinstallprompt, on affiche l'explication
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  if (isIOS && !isStandalone) installBtn.hidden = false;
+
+  if (isStandalone) installBtn.hidden = true;
+
+  window.addEventListener("beforeinstallprompt", function (event) {
+    event.preventDefault();
+    deferredPrompt = event;
+    installBtn.hidden = false;
+  });
+
+  window.addEventListener("appinstalled", function () {
+    deferredPrompt = null;
+    installBtn.hidden = true;
+    hintEl.textContent = "Application installée.";
+    setTimeout(function () { hintEl.textContent = HINT; }, 2800);
+  });
+
+  installBtn.addEventListener("click", async function () {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      try {
+        const choice = await deferredPrompt.userChoice;
+        if (choice && choice.outcome === "accepted") installBtn.hidden = true;
+      } catch (e) {}
+      deferredPrompt = null;
+      return;
+    }
+    hintEl.textContent = "Sur iPhone : bouton Partager, puis « Sur l'écran d'accueil ».";
+    setTimeout(function () { hintEl.textContent = HINT; }, 5000);
+  });
 })();
 </script>
 </body>
