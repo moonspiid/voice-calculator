@@ -14,7 +14,7 @@
 **You talk, it calculates.** A phone-shaped calculator with one screen and no menu: say the sum out loud, the result appears, then everything clears for the next one. The whole project is a single HTML file.
 
 <h3 align="center">
-  <a href="https://github.com/moonspiid/calculatrice-vocale/blob/main/index.html" target="_blank" rel="noopener noreferrer">⬆ View the file</a>
+  <a href="https://moonspiid.github.io/voice-calculator/" target="_blank" rel="noopener noreferrer">⬆ View the file</a>
 </h3>
 
 <p align="center">
@@ -49,10 +49,11 @@ Typing a sum on a phone keyboard takes time, and both hands. A calculator that l
 
 ## Quick start
 
-1. Download `index.html` — that is the whole project.
-2. Serve the file from `localhost` (the microphone is blocked on `file://`): `python3 -m http.server 8000`, then open `http://localhost:8000`.
-3. Press the big button, allow the microphone, and say for example **"douze divisé par quatre"**.
-4. The equation and the result appear, then the calculator resets by itself.
+1. Open [moonspiid.github.io/voice-calculator](https://moonspiid.github.io/voice-calculator/) — that is the whole app, already served over HTTPS.
+2. Press the big button, allow the microphone, and say for example **"douze divisé par quatre"**.
+3. The equation and the result appear, then the calculator resets by itself.
+
+To run it locally instead, download `index.html` — the whole project — and serve it from `localhost` (the microphone is blocked on `file://`): `python3 -m http.server 8000`, then open `http://localhost:8000`.
 
 ## How it works
 
