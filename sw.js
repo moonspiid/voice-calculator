@@ -1,6 +1,6 @@
 /* Service worker : le HTML est cherché sur le réseau d'abord,
    pour que les mises à jour arrivent tout de suite. */
-const CACHE = "calculatrice-v9";
+const CACHE = "calculatrice-v10";
 const ASSETS = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg", "./icon-maskable.svg"];
 
 self.addEventListener("install", (event) => {
