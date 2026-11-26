@@ -569,7 +569,7 @@
   function safeEval(expression) {
     if (!expression) return null;
     if (/[^0-9+\-*/().]/.test(expression)) return null;
-    if (/[+\-*/.\]|\/[+\-*/.]$/.test(expression)) return null;
+    if (/[+\-*/.]$/.test(expression)) return null;
     try {
       const value = Function('"use strict";return (' + expression + ')')();
       if (typeof value !== "number" || !isFinite(value)) return null;
