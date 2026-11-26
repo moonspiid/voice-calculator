@@ -119,6 +119,33 @@
   dialog.donate .row button{flex:1;border:0;border-radius:12px;padding:10px;cursor:pointer;font:inherit;font-size:12px;font-weight:600;background:#1b2029;color:var(--accent)}
   dialog.donate .row button.primary{background:linear-gradient(180deg,#ffa24f,#ff7a28);color:#20140a}
   dialog.donate .row button:active{transform:scale(.97)}
+
+  /* ---------- Historique des calculs ---------- */
+  .histBtn{display:grid;place-items:center;width:30px;height:30px;padding:0;border-radius:999px;cursor:pointer;
+    border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03);color:var(--muted)}
+  .histBtn svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .histBtn:active{color:var(--accent)}
+  .histPanel{position:absolute;inset:0;z-index:20;display:flex;align-items:flex-end;padding:14px;
+    background:rgba(4,5,9,.66);backdrop-filter:blur(6px)}
+  .histPanel[hidden]{display:none}
+  .histCard{display:flex;flex-direction:column;width:100%;max-height:72%;overflow:hidden;border-radius:20px;
+    border:1px solid rgba(255,255,255,.08);background:linear-gradient(180deg,#151925,#0d0f16);
+    box-shadow:0 24px 60px rgba(0,0,0,.6)}
+  .histHead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;
+    border-bottom:1px solid rgba(255,255,255,.06)}
+  .histHead b{font-size:13px;font-weight:600}
+  .histHead button{border:0;background:none;padding:4px 6px;border-radius:8px;color:var(--muted);font:inherit;font-size:12px;cursor:pointer}
+  .histHead button:active{color:var(--accent)}
+  .histList{list-style:none;margin:0;padding:6px;overflow-y:auto;min-height:0}
+  .histList button{display:flex;align-items:baseline;justify-content:space-between;gap:12px;width:100%;padding:10px;border:0;
+    border-radius:12px;background:none;color:var(--text);font:inherit;text-align:left;cursor:pointer}
+  .histList button:active{background:rgba(255,255,255,.05)}
+  .histList .expr{font-size:12px;color:var(--muted);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .histList .val{flex:0 0 auto;font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+  [dir="rtl"] .histList button{text-align:right}
+  .histEmpty{margin:0;padding:18px 14px 22px;font-size:12px;color:var(--muted);text-align:center}
+  .histEmpty[hidden]{display:none}
+
   @media (max-height:700px){.mic{width:64px;height:64px}.mic svg{width:28px;height:28px}.display{padding-bottom:8px}.voice{gap:6px;padding-top:10px}
     .holo{height:clamp(54px,15vw,76px);margin:6px 14px 0}}
 </style>
@@ -131,6 +158,13 @@
       <span class="brandText"><b>Calculatrice</b><small>vocale</small></span>
     </span>
     <span class="tools">
+      <button class="histBtn" id="histBtn" type="button" aria-label="Historique">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M3 12a9 9 0 1 0 3-6.7"/>
+          <path d="M3 4v5h5"/>
+          <path d="M12 8v4l3 2"/>
+        </svg>
+      </button>
       <span class="badge" id="badge"><i class="dot"></i><span id="badgeText">Vocal prêt</span></span>
     </span>
   </header>
@@ -197,7 +231,7 @@
       <span class="sep">·</span>
       <button type="button" id="donateBtn">Donate</button>
       <span class="sep">·</span>
-      <span class="ver">v9</span>
+      <span class="ver">v10</span>
     </p>
   </section>
 
@@ -210,6 +244,20 @@
       <button type="button" id="closeDonate">Fermer</button>
     </div>
   </dialog>
+
+  <section class="histPanel" id="histPanel" hidden>
+    <div class="histCard">
+      <div class="histHead">
+        <b id="histTitle">Historique</b>
+        <span>
+          <button type="button" id="histClear">Effacer</button>
+          <button type="button" id="histClose" aria-label="Fermer">✕</button>
+        </span>
+      </div>
+      <ul class="histList" id="histList"></ul>
+      <p class="histEmpty" id="histEmpty">Aucun calcul pour le moment.</p>
+    </div>
+  </section>
 
 </main>
 
@@ -225,6 +273,12 @@
   const badgeTextEl  = document.getElementById("badgeText");
   const micEl        = document.getElementById("mic");
   const holoEl       = document.getElementById("holo");
+  const histPanel    = document.getElementById("histPanel");
+  const histListEl   = document.getElementById("histList");
+  const histEmptyEl  = document.getElementById("histEmpty");
+  const histBtn      = document.getElementById("histBtn");
+  const histClose    = document.getElementById("histClose");
+  const histClear    = document.getElementById("histClear");
 
   /* ---------- Langue détectée automatiquement (navigateur) ---------- */
   const DETECTED = (navigator.languages && navigator.languages[0]) || navigator.language || "fr-FR";
@@ -251,7 +305,10 @@
     done: "تم عرض النتيجة. جاهز للعملية التالية…",
     installed: "تم تثبيت التطبيق.",
     chromeInstall: "في Chrome : قائمة ⋮ ثم « تثبيت التطبيق ».",
-    installLabel: "تثبيت التطبيق"
+    installLabel: "تثبيت التطبيق",
+    histTitle: "السجل",
+    histEmpty: "لا توجد عمليات بعد.",
+    histClear: "مسح"
   };
 
   const T = IS_AR ? T_AR : (IS_FR ? {
@@ -270,7 +327,10 @@
     done: "Résultat affiché. Prêt pour le calcul suivant…",
     installed: "Application installée.",
     chromeInstall: "Dans Chrome : menu ⋮ puis « Installer l’application ».",
-    installLabel: "Installer l’application"
+    installLabel: "Installer l’application",
+    histTitle: "Historique",
+    histEmpty: "Aucun calcul pour le moment.",
+    histClear: "Effacer"
   } : {
     idle: "Voice ready",
     listen: "Listening…",
@@ -287,7 +347,10 @@
     done: "Result shown. Ready for the next calculation…",
     installed: "App installed.",
     chromeInstall: "In Chrome: ⋮ menu, then “Install app”.",
-    installLabel: "Install app"
+    installLabel: "Install app",
+    histTitle: "History",
+    histEmpty: "No calculations yet.",
+    histClear: "Clear"
   });
 
   document.documentElement.lang = IS_AR ? "ar" : (IS_FR ? "fr" : "en");
@@ -297,6 +360,10 @@
   hintEl.dataset.hint = T.hint;
   hintEl.textContent = T.hint;
   document.getElementById("install").lastChild.textContent = " " + T.installLabel;
+  document.getElementById("histTitle").textContent = T.histTitle;
+  histEmptyEl.textContent = T.histEmpty;
+  histClear.textContent = T.histClear;
+  histBtn.setAttribute("aria-label", T.histTitle);
 
   /* ---------- Niveau de l'hologramme ---------- */
   let holoLevel = 0;
@@ -319,6 +386,92 @@
     holoTarget = Math.min(1, Math.max(holoTarget, value));
     if (!holoRaf) holoRaf = requestAnimationFrame(holoStep);
   }
+
+  /* ---------- Historique des calculs (localStorage) ---------- */
+  const HIST_KEY = "calculatrice-historique-v1";
+  const HIST_MAX = 40;
+  let histEntries = [];
+
+  function loadHistory() {
+    try {
+      const raw = localStorage.getItem(HIST_KEY);
+      const list = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(list)) return [];
+      return list
+        .filter((item) => item && typeof item.e === "string" && typeof item.v === "string")
+        .slice(0, HIST_MAX);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveHistory() {
+    try { localStorage.setItem(HIST_KEY, JSON.stringify(histEntries)); } catch (e) {}
+  }
+
+  function renderHistory() {
+    histListEl.textContent = "";
+    histEntries.forEach(function (item) {
+      const li = document.createElement("li");
+      const btn = document.createElement("button");
+      btn.type = "button";
+      const exprEl = document.createElement("span");
+      exprEl.className = "expr";
+      exprEl.textContent = item.e;
+      const valEl = document.createElement("span");
+      valEl.className = "val";
+      valEl.textContent = item.v;
+      btn.appendChild(exprEl);
+      btn.appendChild(valEl);
+      btn.addEventListener("click", function () {
+        clearTimeout(resetTimer);
+        expr = item.v;
+        justEval = true;
+        historyEl.textContent = "";
+        transcriptEl.textContent = "";
+        render();
+        setBadge("idle");
+        hintEl.textContent = hintEl.dataset.hint;
+        closeHistory();
+      });
+      li.appendChild(btn);
+      histListEl.appendChild(li);
+    });
+    histEmptyEl.hidden = histEntries.length > 0;
+  }
+
+  function addHistory(equation, value) {
+    histEntries.unshift({ e: pretty(equation) + " =", v: String(value) });
+    if (histEntries.length > HIST_MAX) histEntries = histEntries.slice(0, HIST_MAX);
+    saveHistory();
+    renderHistory();
+  }
+
+  function openHistory() {
+    renderHistory();
+    histPanel.hidden = false;
+  }
+
+  function closeHistory() {
+    histPanel.hidden = true;
+  }
+
+  histEntries = loadHistory();
+  renderHistory();
+
+  histBtn.addEventListener("click", openHistory);
+  histClose.addEventListener("click", closeHistory);
+  histClear.addEventListener("click", function () {
+    histEntries = [];
+    saveHistory();
+    renderHistory();
+  });
+  histPanel.addEventListener("click", function (event) {
+    if (event.target === histPanel) closeHistory();
+  });
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" && !histPanel.hidden) closeHistory();
+  });
 
   let expr = "";
   let justEval = false;
@@ -389,6 +542,7 @@
         resultEl.textContent = "Erreur";
         return;
       }
+      addHistory(expr, value);
       historyEl.textContent = pretty(expr) + " =";
       expr = String(value);
       justEval = true;
@@ -415,7 +569,7 @@
   function safeEval(expression) {
     if (!expression) return null;
     if (/[^0-9+\-*/().]/.test(expression)) return null;
-    if (/[+\-*/.]$/.test(expression)) return null;
+    if (/[+\-*/.\]|\/[+\-*/.]$/.test(expression)) return null;
     try {
       const value = Function('"use strict";return (' + expression + ')')();
       if (typeof value !== "number" || !isFinite(value)) return null;
@@ -755,6 +909,7 @@
       return false;
     }
 
+    addHistory(equation, value);
     historyEl.textContent = pretty(equation) + " =";
     expr = String(value);
     justEval = true;
