@@ -30,9 +30,6 @@
   .brandText b{font-size:13px;font-weight:600;letter-spacing:.01em}
   .brandText small{font-size:9px;font-weight:600;color:var(--muted);letter-spacing:.16em;text-transform:uppercase}
   .tools{display:flex;align-items:center;gap:7px;flex:0 0 auto}
-  .lang{border:1px solid rgba(255,255,255,.08);border-radius:999px;cursor:pointer;padding:4px 9px;background:rgba(255,255,255,.04);
-    color:var(--accent);font:inherit;font-size:10px;font-weight:700;letter-spacing:.08em;transition:background .12s ease,transform .08s ease}
-  .lang:active{transform:scale(.94);background:rgba(255,255,255,.1)}
   .badge{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--muted);padding:4px 9px;border-radius:999px;
     border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.02)}
   .dot{width:6px;height:6px;border-radius:50%;background:#4b5062;transition:background .2s,box-shadow .2s}
@@ -102,7 +99,6 @@
       <span class="brandText"><b>Calculatrice</b><small>vocale</small></span>
     </span>
     <span class="tools">
-      <button class="lang" id="langBtn" type="button" aria-label="Langue du micro">FR</button>
       <span class="badge" id="badge"><i class="dot"></i><span id="badgeText">Vocal prêt</span></span>
     </span>
   </header>
@@ -165,7 +161,7 @@
       <span class="sep">·</span>
       <button type="button" id="donateBtn">Donate</button>
       <span class="sep">·</span>
-      <span class="ver">v5</span>
+      <span class="ver">v6</span>
     </p>
   </section>
 
@@ -192,7 +188,52 @@
   const badgeEl      = document.getElementById("badge");
   const badgeTextEl  = document.getElementById("badgeText");
   const micEl        = document.getElementById("mic");
-  const langBtn      = document.getElementById("langBtn");
+
+  /* ---------- Langue détectée automatiquement (navigateur) ---------- */
+  const DETECTED = (navigator.languages && navigator.languages[0]) || navigator.language || "fr-FR";
+  const REC_LANG = /^[a-zA-Z]{2,3}([-_][a-zA-Z0-9]{2,8})*$/.test(DETECTED) ? DETECTED.replace("_", "-") : "fr-FR";
+  const IS_FR = /^fr/i.test(REC_LANG);
+
+  const T = IS_FR ? {
+    idle: "Vocal prêt",
+    listen: "Écoute…",
+    active: "Micro actif",
+    hint: "Touchez le micro et dictez « deux plus trois fois quatre »",
+    listening: "Je vous écoute…",
+    unsupported: "Reconnaissance vocale indisponible : ouvrez cette page dans Chrome.",
+    denied: "Micro refusé. Autorisez le microphone dans le navigateur.",
+    noSpeech: "Aucune parole détectée. Réessayez.",
+    micError: "Erreur micro. Réessayez.",
+    startError: "Impossible de démarrer le micro. Réessayez.",
+    notUnderstood: "Calcul non reconnu. Dictez par exemple « douze divisé par quatre ».",
+    incomplete: "Calcul incomplet. Réessayez.",
+    done: "Résultat affiché. Prêt pour le calcul suivant…",
+    installed: "Application installée.",
+    chromeInstall: "Dans Chrome : menu ⋮ puis « Installer l’application ».",
+    installLabel: "Installer l’application"
+  } : {
+    idle: "Voice ready",
+    listen: "Listening…",
+    active: "Mic active",
+    hint: "Tap the mic and say “two plus three times four”",
+    listening: "Listening…",
+    unsupported: "Speech recognition is unavailable: open this page in Chrome.",
+    denied: "Microphone blocked. Allow the microphone in your browser.",
+    noSpeech: "No speech detected. Try again.",
+    micError: "Microphone error. Try again.",
+    startError: "Could not start the microphone. Try again.",
+    notUnderstood: "Calculation not recognised. Try “twelve divided by four”.",
+    incomplete: "Incomplete calculation. Try again.",
+    done: "Result shown. Ready for the next calculation…",
+    installed: "App installed.",
+    chromeInstall: "In Chrome: ⋮ menu, then “Install app”.",
+    installLabel: "Install app"
+  };
+
+  window.CALC_TEXT = T;
+  hintEl.dataset.hint = T.hint;
+  hintEl.textContent = T.hint;
+  document.getElementById("install").lastChild.textContent = " " + T.installLabel;
 
   let expr = "";
   let justEval = false;
@@ -212,7 +253,7 @@
     historyEl.textContent = "";
     transcriptEl.textContent = "";
     render();
-    hintEl.textContent = activeLang().hint;
+    hintEl.textContent = hintEl.dataset.hint;
     setBadge("idle");
   }
 
@@ -298,32 +339,7 @@
     }
   }
 
-  const LANGS = [
-    {
-      code: "fr-FR",
-      label: "FR",
-      name: "Français",
-      hint: "Touchez le micro et dictez « deux plus trois fois quatre »",
-      listen: "Je vous écoute…"
-    },
-    {
-      code: "en-US",
-      label: "EN",
-      name: "English",
-      hint: "Tap the mic and say “two plus three times four”",
-      listen: "Listening…"
-    }
-  ];
-
-  let langIndex = 0;
-  try {
-    const saved = localStorage.getItem("calc-lang");
-    const found = LANGS.findIndex((l) => l.code === saved);
-    if (found >= 0) langIndex = found;
-  } catch (e) {}
-
-  const activeLang = () => LANGS[langIndex];
-
+  /* ---------- Nombres en mots (français + anglais) ---------- */
   const FR_WORDS = {
     zero: 0, un: 1, une: 1, deux: 2, trois: 3, quatre: 4, cinq: 5, six: 6,
     sept: 7, huit: 8, neuf: 9, dix: 10, onze: 11, douze: 12, treize: 13,
@@ -341,15 +357,14 @@
     thousand: 1000, thousands: 1000, million: 1000000, millions: 1000000
   };
 
-  const LANG_DATA = {
-    "fr-FR": { words: FR_WORDS, connectors: ["et"] },
-    "en-US": { words: EN_WORDS, connectors: ["and"] }
-  };
+  // Les deux tables sont fusionnées : le calcul fonctionne quelle que soit la langue du téléphone.
+  const WORDS = Object.assign({}, FR_WORDS, EN_WORDS);
+  const CONNECTORS = ["et", "and"];
 
-  function parseNumberWords(run, table) {
+  function parseNumberWords(run) {
     let total = 0, current = 0;
     for (const w of run) {
-      const v = table[w];
+      const v = WORDS[w];
       if (v === undefined) continue;
       if (v === 1000 || v === 1000000) {
         current = (current || 1) * v;
@@ -366,8 +381,8 @@
     return total + current;
   }
 
-  function wordsToDigits(s, data) {
-    const isNum = (w) => Object.prototype.hasOwnProperty.call(data.words, w);
+  function wordsToDigits(s) {
+    const isNum = (w) => Object.prototype.hasOwnProperty.call(WORDS, w);
     const tokens = s.split(/\s+/).filter(Boolean);
     const out = [];
     for (let i = 0; i < tokens.length; i++) {
@@ -375,11 +390,11 @@
         const run = [];
         while (i < tokens.length) {
           if (isNum(tokens[i])) { run.push(tokens[i]); i++; }
-          else if (data.connectors.indexOf(tokens[i]) !== -1 && tokens[i + 1] && isNum(tokens[i + 1])) { i++; }
+          else if (CONNECTORS.indexOf(tokens[i]) !== -1 && tokens[i + 1] && isNum(tokens[i + 1])) { i++; }
           else break;
         }
         i--;
-        out.push(String(parseNumberWords(run, data.words)));
+        out.push(String(parseNumberWords(run)));
       } else {
         out.push(tokens[i]);
       }
@@ -423,8 +438,7 @@
          .replace(/\bminus\b/g, " - ")
          .replace(/(^|[^a-z])x(?=[^a-z]|$)/g, "$1 * ");
 
-    const data = LANG_DATA[activeLang().code] || LANG_DATA["fr-FR"];
-    s = wordsToDigits(s, data);
+    s = wordsToDigits(s);
 
     s = s.replace(/\s*,\s*/g, ".");
     s = s.replace(/[^0-9+\-*/%.()]/g, "");
@@ -432,6 +446,7 @@
     return s;
   }
 
+  /* ---------- Web Speech API ---------- */
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   let recognition = null;
   let listening = false;
@@ -439,9 +454,9 @@
 
   function setBadge(state) {
     badgeEl.className = "badge";
-    if (state === "listen") { badgeEl.classList.add("on", "listen"); badgeTextEl.textContent = "Écoute…"; }
-    else if (state === "on") { badgeEl.classList.add("on"); badgeTextEl.textContent = "Micro actif"; }
-    else { badgeTextEl.textContent = "Vocal prêt"; }
+    if (state === "listen") { badgeEl.classList.add("on", "listen"); badgeTextEl.textContent = T.listen; }
+    else if (state === "on") { badgeEl.classList.add("on"); badgeTextEl.textContent = T.active; }
+    else { badgeTextEl.textContent = T.idle; }
   }
 
   function setListening(on) {
@@ -449,32 +464,16 @@
     micEl.classList.toggle("listening", on);
     micEl.setAttribute("aria-pressed", on ? "true" : "false");
     setBadge(on ? "listen" : "idle");
-    hintEl.textContent = on ? activeLang().listen : hintEl.dataset.hint;
+    hintEl.textContent = on ? T.listening : hintEl.dataset.hint;
   }
-
-  function applyLang() {
-    const lang = activeLang();
-    langBtn.textContent = lang.label;
-    langBtn.setAttribute("aria-label", "Langue du micro : " + lang.name);
-    langBtn.setAttribute("title", "Langue du micro : " + lang.name);
-    if (recognition) recognition.lang = lang.code;
-    hintEl.dataset.hint = lang.hint;
-    if (!listening) hintEl.textContent = lang.hint;
-    try { localStorage.setItem("calc-lang", lang.code); } catch (e) {}
-  }
-
-  langBtn.addEventListener("click", function () {
-    langIndex = (langIndex + 1) % LANGS.length;
-    applyLang();
-  });
 
   if (!SR) {
     micEl.addEventListener("click", () => {
-      hintEl.textContent = "Reconnaissance vocale indisponible : ouvrez cette page dans Chrome.";
+      hintEl.textContent = T.unsupported;
     });
   } else {
     recognition = new SR();
-    recognition.lang = activeLang().code;
+    recognition.lang = REC_LANG;
     recognition.interimResults = true;
     recognition.continuous = false;
     recognition.maxAlternatives = 1;
@@ -498,11 +497,11 @@
     recognition.onerror = (event) => {
       setListening(false);
       if (event.error === "not-allowed" || event.error === "service-not-allowed") {
-        hintEl.textContent = "Micro refusé. Autorisez le microphone dans le navigateur.";
+        hintEl.textContent = T.denied;
       } else if (event.error === "no-speech") {
-        hintEl.textContent = "Aucune parole détectée. Réessayez.";
+        hintEl.textContent = T.noSpeech;
       } else {
-        hintEl.textContent = "Erreur micro (" + event.error + "). Réessayez.";
+        hintEl.textContent = T.micError;
       }
     };
 
@@ -516,9 +515,10 @@
       if (listening) { recognition.stop(); return; }
       clearTimeout(resetTimer);
       resetAll();
-      hintEl.textContent = activeLang().listen;
+      hintEl.textContent = T.listening;
+      recognition.lang = REC_LANG;
       try { recognition.start(); }
-      catch (e) { hintEl.textContent = "Impossible de démarrer le micro. Réessayez."; }
+      catch (e) { hintEl.textContent = T.startError; }
     });
   }
 
@@ -527,14 +527,14 @@
     const equation = speechToEquation(text);
 
     if (!equation) {
-      hintEl.textContent = "Calcul non reconnu. Dictez par exemple « douze divisé par quatre ».";
+      hintEl.textContent = T.notUnderstood;
       return;
     }
 
     const value = safeEval(equation.replace(/%/g, "/100"));
     if (value === null) {
       historyEl.textContent = pretty(equation);
-      hintEl.textContent = "Calcul incomplet. Réessayez.";
+      hintEl.textContent = T.incomplete;
       return;
     }
 
@@ -542,13 +542,13 @@
     expr = String(value);
     justEval = true;
     render();
-    hintEl.textContent = "Résultat affiché. Prêt pour le calcul suivant…";
+    hintEl.textContent = T.done;
     setBadge("on");
     resetTimer = setTimeout(resetAll, 2800);
   }
 
-  applyLang();
   render();
+  setBadge("idle");
 })();
 </script>
 
@@ -565,6 +565,7 @@
 
   const installBtn = document.getElementById("install");
   const hintEl = document.getElementById("hint");
+  const T = window.CALC_TEXT || { installed: "Application installée.", chromeInstall: "Dans Chrome : menu ⋮ puis « Installer l’application »." };
   let deferredPrompt = null;
 
   const baseHint = function () { return hintEl.dataset.hint || hintEl.textContent; };
@@ -580,13 +581,13 @@
   window.addEventListener("appinstalled", function () {
     deferredPrompt = null;
     installBtn.hidden = true;
-    hintEl.textContent = "Application installée.";
+    hintEl.textContent = T.installed;
     setTimeout(function () { hintEl.textContent = baseHint(); }, 2800);
   });
 
   installBtn.addEventListener("click", async function () {
     if (!deferredPrompt) {
-      hintEl.textContent = "Dans Chrome : menu ⋮ puis « Installer l’application ».";
+      hintEl.textContent = T.chromeInstall;
       setTimeout(function () { hintEl.textContent = baseHint(); }, 5000);
       return;
     }
