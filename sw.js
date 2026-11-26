@@ -1,6 +1,6 @@
 /* Service worker de la calculatrice vocale : cache l'app pour qu'elle
    s'installe et se lance hors ligne. */
-const CACHE = "calculatrice-v3";
+const CACHE = "calculatrice-v4";
 const ASSETS = [
   "./",
   "./index.html",
