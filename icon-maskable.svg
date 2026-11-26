@@ -1,22 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Calculatrice vocale">
   <defs>
-    <linearGradient id="accent" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#ffa24f"/>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#191e2b"/>
+      <stop offset="1" stop-color="#0a0b10"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffb26b"/>
       <stop offset="1" stop-color="#ff7a28"/>
     </linearGradient>
   </defs>
-  <rect width="512" height="512" fill="#0a0b10"/>
-  <g transform="translate(256 256) scale(0.74) translate(-256 -256)">
-    <rect x="52" y="52" width="408" height="408" rx="72" fill="#12131a" stroke="#21232e" stroke-width="6"/>
-    <rect x="104" y="104" width="304" height="96" rx="28" fill="#1a1d27"/>
-    <circle cx="332" cy="152" r="18" fill="url(#accent)"/>
-    <g fill="#272a35">
-      <rect x="104" y="232" width="80" height="70" rx="20"/>
-      <rect x="216" y="232" width="80" height="70" rx="20"/>
-      <rect x="328" y="232" width="80" height="70" rx="20"/>
-      <rect x="104" y="330" width="80" height="70" rx="20"/>
-      <rect x="216" y="330" width="80" height="70" rx="20"/>
-    </g>
-    <rect x="328" y="330" width="80" height="70" rx="20" fill="url(#accent)"/>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <rect x="128" y="128" width="256" height="256" rx="72" fill="url(#accent)"/>
+  <rect x="168" y="168" width="176" height="54" rx="22" fill="#140a03"/>
+  <g fill="#140a03">
+    <circle cx="200" cy="268" r="19"/>
+    <circle cx="256" cy="268" r="19"/>
+    <circle cx="312" cy="268" r="19"/>
+    <circle cx="200" cy="330" r="19"/>
+    <circle cx="256" cy="330" r="19"/>
+    <circle cx="312" cy="330" r="19"/>
   </g>
 </svg>

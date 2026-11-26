@@ -3,189 +3,94 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
-<meta name="theme-color" content="#0a0b10">
-<meta name="description" content="Calculatrice mobile vocale : dictez le calcul, la Web Speech API le transforme en équation, le résultat s'affiche puis tout se réinitialise.">
+<meta name="theme-color" content="#07080c">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="Calculatrice mobile vocale : dictez le calcul, le résultat s'affiche puis tout se réinitialise.">
 <title>Calculatrice vocale</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
-<link rel="apple-touch-icon" href="icon.svg">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='15'%20fill='%23ff8a3d'/%3E%3Crect%20x='13'%20y='13'%20width='38'%20height='12'%20rx='4'%20fill='%23140a03'/%3E%3Cg%20fill='%23140a03'%3E%3Ccircle%20cx='21'%20cy='34'%20r='4.2'/%3E%3Ccircle%20cx='32'%20cy='34'%20r='4.2'/%3E%3Ccircle%20cx='43'%20cy='34'%20r='4.2'/%3E%3Ccircle%20cx='21'%20cy='47'%20r='4.2'/%3E%3Ccircle%20cx='32'%20cy='47'%20r='4.2'/%3E%3Ccircle%20cx='43'%20cy='47'%20r='4.2'/%3E%3C/g%3E%3C/svg%3E">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Calculatrice">
 <style>
-  :root{
-    --bg:#0a0b10;
-    --panel:#12131a;
-    --key:#1e2029;
-    --key-active:#2c2f3d;
-    --fn:#272a35;
-    --accent:#ffb26b;
-    --op:#ff8a3d;
-    --text:#f5f7ff;
-    --muted:#6f748a;
-  }
+  :root{--bg:#07080c;--accent:#ffb26b;--op:#ff8a3d;--text:#f4f6ff;--muted:#7b819b}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{height:100%}
-  body{
-    margin:0;display:grid;place-items:center;overflow:hidden;
-    background:radial-gradient(120% 90% at 50% 0%,#171a26 0%,var(--bg) 60%);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
-    color:var(--text);
-  }
-  .app{
-    width:min(100vw,400px);
-    height:min(calc(100vh - 24px),860px);
-    height:min(calc(100dvh - 24px),860px);
-    background:var(--panel);
-    border:1px solid #21232e;
-    border-radius:30px;
-    box-shadow:0 30px 80px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.04);
-    display:flex;flex-direction:column;overflow:hidden;
-  }
-  @media (max-width:440px){
-    .app{width:100vw;height:100vh;height:100dvh;border:0;border-radius:0;box-shadow:none}
-  }
-  .topbar{
-    display:flex;align-items:center;justify-content:space-between;
-    padding:14px 20px 0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;
-  }
-  .brand{display:flex;align-items:center;gap:7px;color:var(--muted)}
-  .logo{display:block;width:20px;height:20px;border-radius:6px;flex:0 0 auto}
-  .tools{display:flex;align-items:center;gap:7px}
-  .lang{
-    border:1px solid #2a2d3b;border-radius:999px;cursor:pointer;
-    padding:3px 8px;background:var(--fn);color:var(--accent);
-    font:inherit;font-size:10px;font-weight:700;letter-spacing:.06em;
-    line-height:1.4;text-transform:uppercase;
-    transition:background .12s ease,transform .08s ease;
-  }
-  .lang:active{background:#343849;transform:scale(.94)}
-  .badge{display:flex;align-items:center;gap:6px;color:var(--muted);text-transform:none;letter-spacing:0}
-  .dot{width:7px;height:7px;border-radius:50%;background:#4b5062;transition:background .2s,box-shadow .2s}
+  body{margin:0;display:grid;place-items:center;overflow:hidden;color:var(--text);
+    background:radial-gradient(85% 55% at 50% -8%,rgba(255,138,61,.2),transparent 68%),radial-gradient(120% 90% at 50% 110%,#12151f 0%,var(--bg) 62%);
+    font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  .app{position:relative;width:min(100vw,420px);height:min(calc(100dvh - 20px),900px);display:flex;flex-direction:column;overflow:hidden;
+    background:linear-gradient(180deg,#151925 0%,#0b0d13 58%);border:1px solid rgba(255,255,255,.07);border-radius:32px;
+    box-shadow:0 40px 90px rgba(0,0,0,.75),inset 0 1px 0 rgba(255,255,255,.06)}
+  @media (max-width:440px){.app{width:100vw;height:100dvh;border:0;border-radius:0;box-shadow:none}}
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:calc(14px + env(safe-area-inset-top)) 18px 8px}
+  .brand{display:flex;align-items:center;gap:9px;min-width:0}
+  .logo{display:block;width:24px;height:24px;border-radius:8px;flex:0 0 auto;filter:drop-shadow(0 4px 10px rgba(255,138,61,.45))}
+  .brandText{display:flex;flex-direction:column;line-height:1.06;min-width:0}
+  .brandText b{font-size:13px;font-weight:600;letter-spacing:.01em}
+  .brandText small{font-size:9px;font-weight:600;color:var(--muted);letter-spacing:.16em;text-transform:uppercase}
+  .tools{display:flex;align-items:center;gap:7px;flex:0 0 auto}
+  .lang{border:1px solid rgba(255,255,255,.08);border-radius:999px;cursor:pointer;padding:4px 9px;background:rgba(255,255,255,.04);
+    color:var(--accent);font:inherit;font-size:10px;font-weight:700;letter-spacing:.08em;transition:background .12s ease,transform .08s ease}
+  .lang:active{transform:scale(.94);background:rgba(255,255,255,.1)}
+  .badge{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--muted);padding:4px 9px;border-radius:999px;
+    border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.02)}
+  .dot{width:6px;height:6px;border-radius:50%;background:#4b5062;transition:background .2s,box-shadow .2s}
   .badge.on .dot{background:#43d17c;box-shadow:0 0 10px #43d17c}
-  .badge.listen .dot{background:#ff8a3d;box-shadow:0 0 12px #ff8a3d;animation:blink 1s infinite}
+  .badge.listen .dot{background:var(--op);box-shadow:0 0 12px var(--op);animation:blink 1s infinite}
   @keyframes blink{50%{opacity:.25}}
-
-  .display{
-    flex:1 1 0;min-height:78px;
-    display:flex;flex-direction:column;justify-content:flex-end;
-    align-items:flex-end;gap:6px;
-    padding:clamp(10px,3vh,26px) clamp(16px,5vw,22px) 8px;
-    overflow:hidden;
-  }
-  .history{
-    font-size:clamp(12px,3.6vw,15px);color:var(--muted);min-height:18px;
-    max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-  }
-  .result{
-    font-size:clamp(38px,14.5vw,72px);font-weight:300;line-height:1.02;letter-spacing:-.02em;
-    max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-  }
-  .transcript{
-    font-size:clamp(10px,3vw,12px);color:#565b70;min-height:14px;
-    max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-    font-style:italic;
-  }
-
-  .keypad{
-    flex:1.4 1 0;min-height:0;
-    display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(5,1fr);
-    gap:clamp(6px,1.8vw,12px);
-    padding:0 clamp(10px,4vw,18px) clamp(6px,1.6vh,12px);
-  }
-  .key{
-    display:grid;place-items:center;min-width:0;min-height:0;
-    border:0;border-radius:clamp(14px,4vw,20px);
-    background:var(--key);color:var(--text);
-    font:inherit;font-size:clamp(17px,5.2vw,24px);font-weight:500;
-    cursor:pointer;user-select:none;
-    transition:background .12s ease,transform .08s ease;
-  }
-  .key:active{background:var(--key-active);transform:scale(.96)}
-  .key.fn{background:var(--fn);color:var(--accent);font-weight:600}
-  .key.fn:active{background:#343849}
-  .key.op{background:var(--op);color:#20140a;font-size:clamp(19px,5.8vw,26px);font-weight:700}
-  .key.op:active{background:#ffa163}
-  .key.eq{background:linear-gradient(180deg,#ffa24f,#ff7a28);color:#20140a;font-weight:700;
-    box-shadow:0 8px 20px rgba(255,130,50,.28)}
-  .key.eq:active{background:linear-gradient(180deg,#ffb877,#ff8c3d)}
-
-  .voice{
-    flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:6px;
-    padding:6px clamp(16px,5vw,22px) calc(14px + env(safe-area-inset-bottom));
-    border-top:1px solid #1d1f28;
-  }
-  .install{
-    display:inline-flex;align-items:center;gap:6px;
-    border:0;border-radius:999px;cursor:pointer;
-    padding:7px 14px;margin:0 0 2px;
-    background:var(--fn);color:var(--accent);
-    font:inherit;font-size:clamp(11px,3vw,12px);font-weight:600;letter-spacing:.01em;
-    transition:background .12s ease,transform .08s ease;
-  }
-  .install:active{background:#343849;transform:scale(.96)}
+  .display{flex:1 1 auto;min-height:80px;display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-end;
+    padding:6px 20px 14px;overflow:hidden}
+  .history{font-size:clamp(12px,3.6vw,15px);color:var(--muted);min-height:20px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .result{font-size:clamp(46px,16vw,84px);font-weight:300;line-height:1.02;letter-spacing:-.035em;max-width:100%;overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums;text-shadow:0 8px 26px rgba(0,0,0,.5)}
+  .transcript{font-size:clamp(10px,3vw,12px);color:#5b6180;min-height:15px;max-width:100%;overflow:hidden;text-overflow:ellipsis;
+    white-space:nowrap;font-style:italic}
+  .keypad{flex:1.45 1 0;min-height:0;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(5,1fr);
+    gap:clamp(7px,2vw,12px);padding:0 clamp(12px,4vw,20px)}
+  .key{display:grid;place-items:center;min-width:0;min-height:0;border:1px solid rgba(255,255,255,.055);border-radius:clamp(16px,4.4vw,22px);
+    background:linear-gradient(180deg,#1d2130,#12151d);color:var(--text);font:inherit;font-size:clamp(18px,5.4vw,25px);font-weight:500;
+    cursor:pointer;user-select:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 8px 16px rgba(0,0,0,.35);
+    transition:transform .07s ease,filter .12s ease}
+  .key:active{transform:scale(.96);filter:brightness(1.3)}
+  .key.fn{background:linear-gradient(180deg,#272c3b,#1b2029);color:var(--accent);font-weight:600;font-size:clamp(15px,4.4vw,19px)}
+  .key.op{background:linear-gradient(180deg,#ffa055,#f2761f);border-color:rgba(255,196,150,.4);color:#231304;font-weight:700;
+    font-size:clamp(20px,6vw,28px);box-shadow:0 10px 20px rgba(242,118,31,.3),inset 0 1px 0 rgba(255,255,255,.4)}
+  .key.eq{background:linear-gradient(180deg,#ffbd80,#ff7a28);border-color:rgba(255,220,190,.5);color:#231304;font-weight:800;
+    box-shadow:0 12px 26px rgba(255,122,40,.38),inset 0 1px 0 rgba(255,255,255,.5)}
+  .voice{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:8px;
+    padding:12px 20px calc(12px + env(safe-area-inset-bottom));border-top:1px solid rgba(255,255,255,.05);
+    background:linear-gradient(180deg,rgba(255,255,255,.025),transparent)}
+  .install{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(255,178,107,.25);border-radius:999px;cursor:pointer;
+    padding:6px 13px;background:rgba(255,178,107,.08);color:var(--accent);font:inherit;font-size:clamp(11px,3vw,12px);font-weight:600}
   .install svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
   .install[hidden]{display:none}
-  .mic{
-    position:relative;width:74px;height:74px;border-radius:50%;border:0;cursor:pointer;
-    background:radial-gradient(120% 120% at 30% 20%,#ff9d4d,#f2691a);
-    display:grid;place-items:center;
-    box-shadow:0 14px 28px rgba(242,105,26,.35),inset 0 1px 0 rgba(255,255,255,.35);
-    transition:transform .1s ease,box-shadow .2s ease;
-  }
+  .mic{position:relative;width:74px;height:74px;border-radius:50%;border:0;cursor:pointer;display:grid;place-items:center;
+    background:radial-gradient(120% 120% at 32% 18%,#ffb178,#f2691a 72%);
+    box-shadow:0 16px 34px rgba(242,105,26,.42),inset 0 1px 0 rgba(255,255,255,.42);transition:transform .1s ease,box-shadow .2s ease}
   .mic:active{transform:scale(.94)}
   .mic svg{width:32px;height:32px;fill:#241307}
-  .mic::after{
-    content:"";position:absolute;inset:-8px;border-radius:50%;
-    border:2px solid rgba(255,138,61,.55);opacity:0;pointer-events:none;
-  }
-  .mic.listening{
-    background:radial-gradient(120% 120% at 30% 20%,#ff6b6b,#d92a2a);
-    box-shadow:0 14px 32px rgba(217,42,42,.5),inset 0 1px 0 rgba(255,255,255,.3);
-  }
+  .mic::after{content:"";position:absolute;inset:-8px;border-radius:50%;border:2px solid rgba(255,138,61,.55);opacity:0;pointer-events:none}
+  .mic.listening{background:radial-gradient(120% 120% at 32% 18%,#ff7b7b,#d92a2a)}
   .mic.listening::after{opacity:1;animation:pulse 1.5s ease-out infinite}
-  @keyframes pulse{
-    0%{transform:scale(1);opacity:.85}
-    100%{transform:scale(1.45);opacity:0}
-  }
-  .hint{
-    margin:0;font-size:clamp(10px,2.9vw,12px);color:var(--muted);
-    text-align:center;line-height:1.35;max-width:290px;
-  }
-
-  .legal{
-    margin:2px 0 0;display:flex;align-items:center;justify-content:center;gap:6px;
-    font-size:clamp(9px,2.6vw,11px);color:#3f4457;letter-spacing:.01em;
-  }
-  .legal a,.legal button{
-    border:0;background:none;padding:0;font:inherit;color:#767c95;
-    text-decoration:none;cursor:pointer;
-  }
+  @keyframes pulse{0%{transform:scale(1);opacity:.85}100%{transform:scale(1.45);opacity:0}}
+  .hint{margin:0;font-size:clamp(10px,2.9vw,12px);color:var(--muted);text-align:center;line-height:1.35;max-width:300px}
+  .legal{margin:0;display:flex;align-items:center;justify-content:center;gap:6px;font-size:clamp(9px,2.6vw,11px);color:#3f4457}
+  .legal a,.legal button{border:0;background:none;padding:0;font:inherit;color:#7b819b;text-decoration:none;cursor:pointer}
   .legal a:active,.legal button:active{color:var(--accent)}
   .legal .sep{color:#33384a}
-
-  dialog.donate{
-    margin:auto;padding:18px;border:1px solid #21232e;border-radius:22px;
-    max-width:min(92vw,320px);background:var(--panel);color:var(--text);
-    font-family:inherit;box-shadow:0 30px 80px rgba(0,0,0,.7);
-  }
-  dialog.donate::backdrop{background:rgba(6,7,12,.72)}
+  .legal .ver{color:#33384a}
+  dialog.donate{margin:auto;padding:18px;border:1px solid #232838;border-radius:22px;max-width:min(92vw,320px);background:#0e1016;
+    color:var(--text);font-family:inherit;box-shadow:0 30px 80px rgba(0,0,0,.7)}
+  dialog.donate::backdrop{background:rgba(4,5,9,.75)}
   dialog.donate h2{margin:0 0 4px;font-size:15px;font-weight:600}
   dialog.donate p{margin:0 0 12px;font-size:12px;color:var(--muted);line-height:1.45}
-  dialog.donate code{
-    display:block;word-break:break-all;padding:10px;border-radius:12px;
-    background:#0e0f15;border:1px solid #21232e;
-    font-size:11px;line-height:1.5;color:var(--accent);
-  }
+  dialog.donate code{display:block;word-break:break-all;padding:10px;border-radius:12px;background:#08090d;border:1px solid #232838;font-size:11px;line-height:1.5;color:var(--accent)}
   dialog.donate .row{display:flex;gap:8px;margin-top:12px}
-  dialog.donate .row button{
-    flex:1;border:0;border-radius:12px;padding:10px;cursor:pointer;
-    font:inherit;font-size:12px;font-weight:600;
-    background:var(--fn);color:var(--accent);
-  }
+  dialog.donate .row button{flex:1;border:0;border-radius:12px;padding:10px;cursor:pointer;font:inherit;font-size:12px;font-weight:600;background:#1b2029;color:var(--accent)}
   dialog.donate .row button.primary{background:linear-gradient(180deg,#ffa24f,#ff7a28);color:#20140a}
   dialog.donate .row button:active{transform:scale(.97)}
+  @media (max-height:700px){.mic{width:64px;height:64px}.mic svg{width:28px;height:28px}.display{padding-bottom:8px}.voice{gap:6px;padding-top:10px}}
 </style>
 </head>
 <body>
@@ -193,8 +98,8 @@
 
   <header class="topbar">
     <span class="brand">
-      <img class="logo" src="icon.svg" alt="" width="20" height="20">
-      Calculatrice
+      <img class="logo" src="icon.svg" alt="" width="24" height="24">
+      <span class="brandText"><b>Calculatrice</b><small>vocale</small></span>
     </span>
     <span class="tools">
       <button class="lang" id="langBtn" type="button" aria-label="Langue du micro">FR</button>
@@ -259,6 +164,8 @@
       <a href="https://github.com/moonspiid/voice-calculator" target="_blank" rel="noopener noreferrer">GitHub</a>
       <span class="sep">·</span>
       <button type="button" id="donateBtn">Donate</button>
+      <span class="sep">·</span>
+      <span class="ver">v5</span>
     </p>
   </section>
 
@@ -287,7 +194,6 @@
   const micEl        = document.getElementById("mic");
   const langBtn      = document.getElementById("langBtn");
 
-  /* ---------- État de la calculatrice ---------- */
   let expr = "";
   let justEval = false;
   let resetTimer = null;
@@ -310,7 +216,6 @@
     setBadge("idle");
   }
 
-  /* ---------- Saisie tactile ---------- */
   function appendDigit(d) {
     const tail = (expr.match(/(\d*\.?\d*)$/) || ["", ""])[1];
     if (d === ".") {
@@ -361,7 +266,6 @@
       expr = String(value);
       justEval = true;
     } else {
-      // opérateur
       if (expr === "") {
         if (key === "-") expr = "-";
         else return;
@@ -381,7 +285,6 @@
     btn.addEventListener("click", () => press(btn.dataset.key));
   });
 
-  /* ---------- Évaluation sûre ---------- */
   function safeEval(expression) {
     if (!expression) return null;
     if (/[^0-9+\-*/().]/.test(expression)) return null;
@@ -395,7 +298,6 @@
     }
   }
 
-  /* ---------- Langues ---------- */
   const LANGS = [
     {
       code: "fr-FR",
@@ -422,7 +324,6 @@
 
   const activeLang = () => LANGS[langIndex];
 
-  /* ---------- Conversion parole -> équation ---------- */
   const FR_WORDS = {
     zero: 0, un: 1, une: 1, deux: 2, trois: 3, quatre: 4, cinq: 5, six: 6,
     sept: 7, huit: 8, neuf: 9, dix: 10, onze: 11, douze: 12, treize: 13,
@@ -457,7 +358,7 @@
       } else if (v === 100) {
         current = (current || 1) * 100;
       } else if (v >= 20 && v % 10 === 0 && current > 0 && current < 10) {
-        current *= v;                 // quatre vingt -> 80
+        current *= v;
       } else {
         current += v;
       }
@@ -487,25 +388,24 @@
   }
 
   function speechToEquation(text) {
+    const DASH = "\u0001";
     let s = String(text).toLowerCase()
       .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
       .replace(/[’']/g, " ")
       .replace(/÷/g, " / ").replace(/×/g, " * ")
-      .replace(/[−–—]/g, "-")
-      // « 1950-50 » : le tiret entre deux chiffres est une soustraction,
-      // pas un trait d'union à effacer (sinon 1950 50 -> 195050).
-      .replace(/(\d)\s*-\s*(?=\d)/g, "$1 - ")
-      .replace(/-/g, " ")
-      .replace(/,\s*/g, " ")
-      .replace(/\s+/g, " ").trim();
+      .replace(/[−–—]/g, "-");
 
-    // virgule décimale (fr) / point (en)
+    // Un tiret entre deux chiffres est une soustraction : « 1950-50 » -> 1950 - 50.
+    // On le protège AVANT de transformer les traits d'union des mots (dix-neuf).
+    s = s.replace(/(\d)\s*-\s*(?=\d)/g, "$1" + DASH);
+    s = s.replace(/-/g, " ");
+    s = s.split(DASH).join(" - ");
+
+    s = s.replace(/\s+/g, " ").trim();
     s = s.replace(/\bvirgule\b/g, " , ").replace(/\bpoint\b/g, " , ");
 
-    // mots parasites
     s = s.replace(/\b(egal|egale|egales|egaux|font|fait|resultat|donne|combien|est|ca|equals|equal|is|are|makes|make|what|how|much|result|the)\b/g, " ");
 
-    // mots opérateurs (français et anglais)
     s = s.replace(/\bdivis(e|er|ee|es)?\s+par\b/g, " / ")
          .replace(/\bdivise\b/g, " / ")
          .replace(/\bdivide[sd]?(\s+by)?\b/g, " / ")
@@ -526,14 +426,12 @@
     const data = LANG_DATA[activeLang().code] || LANG_DATA["fr-FR"];
     s = wordsToDigits(s, data);
 
-    s = s.replace(/\s*,\s*/g, ".");            // virgule décimale
-    s = s.replace(/[^0-9+\-*/%.()]/g, "");     // sécurité
+    s = s.replace(/\s*,\s*/g, ".");
+    s = s.replace(/[^0-9+\-*/%.()]/g, "");
     s = s.replace(/\s+/g, "");
-
     return s;
   }
 
-  /* ---------- Web Speech API ---------- */
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   let recognition = null;
   let listening = false;
@@ -551,7 +449,7 @@
     micEl.classList.toggle("listening", on);
     micEl.setAttribute("aria-pressed", on ? "true" : "false");
     setBadge(on ? "listen" : "idle");
-    hintEl.textContent = on ? activeLang().listen : activeLang().hint;
+    hintEl.textContent = on ? activeLang().listen : hintEl.dataset.hint;
   }
 
   function applyLang() {
@@ -560,6 +458,7 @@
     langBtn.setAttribute("aria-label", "Langue du micro : " + lang.name);
     langBtn.setAttribute("title", "Langue du micro : " + lang.name);
     if (recognition) recognition.lang = lang.code;
+    hintEl.dataset.hint = lang.hint;
     if (!listening) hintEl.textContent = lang.hint;
     try { localStorage.setItem("calc-lang", lang.code); } catch (e) {}
   }
@@ -571,7 +470,7 @@
 
   if (!SR) {
     micEl.addEventListener("click", () => {
-      hintEl.textContent = "Reconnaissance vocale indisponible sur ce navigateur. Utilisez Chrome, Edge ou Safari.";
+      hintEl.textContent = "Reconnaissance vocale indisponible : ouvrez cette page dans Chrome.";
     });
   } else {
     recognition = new SR();
@@ -623,7 +522,6 @@
     });
   }
 
-  /* ---------- Traitement de la commande vocale ---------- */
   function handleVoice(text) {
     transcriptEl.textContent = "« " + text + " »";
     const equation = speechToEquation(text);
@@ -655,7 +553,7 @@
 </script>
 
 <script>
-/* ---------- Installation en tant qu'application ---------- */
+/* Installation en tant qu'application (Chrome) */
 (function () {
   "use strict";
 
@@ -667,15 +565,10 @@
 
   const installBtn = document.getElementById("install");
   const hintEl = document.getElementById("hint");
-  const HINT = hintEl.textContent;
   let deferredPrompt = null;
 
-  const isStandalone =
-    window.matchMedia("(display-mode: standalone)").matches ||
-    window.navigator.standalone === true;
-  // iPhone / iPad : pas de beforeinstallprompt, on affiche l'explication
-  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  if (isIOS && !isStandalone) installBtn.hidden = false;
+  const baseHint = function () { return hintEl.dataset.hint || hintEl.textContent; };
+  const isStandalone = window.matchMedia("(display-mode: standalone)").matches;
   if (isStandalone) installBtn.hidden = true;
 
   window.addEventListener("beforeinstallprompt", function (event) {
@@ -688,27 +581,27 @@
     deferredPrompt = null;
     installBtn.hidden = true;
     hintEl.textContent = "Application installée.";
-    setTimeout(function () { hintEl.textContent = HINT; }, 2800);
+    setTimeout(function () { hintEl.textContent = baseHint(); }, 2800);
   });
 
   installBtn.addEventListener("click", async function () {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      try {
-        const choice = await deferredPrompt.userChoice;
-        if (choice && choice.outcome === "accepted") installBtn.hidden = true;
-      } catch (e) {}
-      deferredPrompt = null;
+    if (!deferredPrompt) {
+      hintEl.textContent = "Dans Chrome : menu ⋮ puis « Installer l’application ».";
+      setTimeout(function () { hintEl.textContent = baseHint(); }, 5000);
       return;
     }
-    hintEl.textContent = "Sur iPhone : bouton Partager, puis « Sur l'écran d'accueil ».";
-    setTimeout(function () { hintEl.textContent = HINT; }, 5000);
+    deferredPrompt.prompt();
+    try {
+      const choice = await deferredPrompt.userChoice;
+      if (choice && choice.outcome === "accepted") installBtn.hidden = true;
+    } catch (e) {}
+    deferredPrompt = null;
   });
 })();
 </script>
 
 <script>
-/* ---------- Pied de page : don ---------- */
+/* Pied de page : don */
 (function () {
   "use strict";
 
