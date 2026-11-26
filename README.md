@@ -120,11 +120,6 @@ This is a plain EVM address, so **the same address works on every EVM network**.
 
 Two rules: send **USDT only** (another token sent to this address cannot be recovered), and keep a little of the network's own coin (BNB, ETH, POL) in your wallet to pay the transfer fee. A non-EVM network such as Tron (TRC20) uses a different address format, so nothing sent there reaches this one.
 
-## Contributors
-
-- **moonspiid** — idea, design, direction and testing.
-- **Buffy** — AI coding agent (Freebuff): voice parsing, French/English/Arabic support, calculation history, PWA and offline support, documentation.
-
 ## License
 
 [MIT](LICENSE) © 2026 moonspiid — use it, modify it, ship it.
