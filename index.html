@@ -68,14 +68,14 @@
   .holoBars i:nth-child(8){--k:.46}
   .holoBars i:nth-child(9){--k:.3}
 
-  .display{flex:1 1 auto;min-height:80px;display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-end;
+  .display{flex:.8 1 auto;min-height:80px;display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-end;
     padding:6px 20px 14px;overflow:hidden}
   .history{font-size:clamp(12px,3.6vw,15px);color:var(--muted);min-height:20px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .result{font-size:clamp(46px,16vw,84px);font-weight:300;line-height:1.02;letter-spacing:-.035em;max-width:100%;overflow:hidden;
     text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums;text-shadow:0 8px 26px rgba(0,0,0,.5)}
   .transcript{font-size:clamp(10px,3vw,12px);color:#5b6180;min-height:15px;max-width:100%;overflow:hidden;text-overflow:ellipsis;
     white-space:nowrap;font-style:italic}
-  .keypad{flex:1.45 1 0;min-height:0;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(5,1fr);
+  .keypad{flex:1.95 1 0;min-height:0;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(5,1fr);
     gap:clamp(7px,2vw,12px);padding:0 clamp(12px,4vw,20px)}
   .key{display:grid;place-items:center;min-width:0;min-height:0;border:1px solid rgba(255,255,255,.055);border-radius:clamp(16px,4.4vw,22px);
     background:linear-gradient(180deg,#1d2130,#12151d);color:var(--text);font:inherit;font-size:clamp(18px,5.4vw,25px);font-weight:500;
@@ -197,7 +197,7 @@
       <span class="sep">·</span>
       <button type="button" id="donateBtn">Donate</button>
       <span class="sep">·</span>
-      <span class="ver">v8</span>
+      <span class="ver">v9</span>
     </p>
   </section>
 
@@ -231,6 +231,9 @@
   const REC_LANG = /^[a-zA-Z]{2,3}([-_][a-zA-Z0-9]{2,8})*$/.test(DETECTED) ? DETECTED.replace("_", "-") : "fr-FR";
   const IS_FR = /^fr/i.test(REC_LANG);
   const IS_AR = /^ar/i.test(REC_LANG);
+  /* Si le navigateur n'est pas en arabe, un second passage en arabe est tenté
+     automatiquement quand la première écoute ne donne rien d'exploitable. */
+  const ALT_LANGS = IS_AR ? [] : ["ar-SA"];
 
   const T_AR = {
     idle: "الوضع جاهز",
@@ -580,7 +583,7 @@
   function speechToEquation(text) {
     const DASH = "\u0001";
     let s = String(text).toLowerCase()
-      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
       .replace(/[\u064B-\u0652\u0670\u0640]/g, "")
       .replace(/[أإآٱ]/g, "ا")
       .replace(/ة/g, "ه")
@@ -635,6 +638,7 @@
   let recognition = null;
   let listening = false;
   let finalText = "";
+  let attempts = [];
 
   function setBadge(state) {
     badgeEl.className = "badge";
@@ -666,6 +670,17 @@
     recognition.continuous = false;
     recognition.maxAlternatives = 1;
 
+    const nextAttempt = function () {
+      if (!attempts.length) {
+        hintEl.textContent = T.notUnderstood;
+        return;
+      }
+      recognition.lang = attempts.shift();
+      finalText = "";
+      try { recognition.start(); }
+      catch (e) { hintEl.textContent = T.startError; }
+    };
+
     recognition.onstart = () => {
       finalText = "";
       transcriptEl.textContent = "";
@@ -690,10 +705,11 @@
     recognition.onerror = (event) => {
       setListening(false);
       if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+        attempts = [];
         hintEl.textContent = T.denied;
       } else if (event.error === "no-speech") {
         hintEl.textContent = T.noSpeech;
-      } else {
+      } else if (event.error !== "aborted") {
         hintEl.textContent = T.micError;
       }
     };
@@ -701,17 +717,25 @@
     recognition.onend = () => {
       setListening(false);
       const spoken = finalText.trim();
-      if (spoken) handleVoice(spoken);
+      if (!spoken) {
+        if (attempts.length) { hintEl.textContent = T.listening; nextAttempt(); }
+        return;
+      }
+      const handled = handleVoice(spoken);
+      if (!handled && attempts.length) {
+        transcriptEl.textContent = "";
+        hintEl.textContent = T.listening;
+        nextAttempt();
+      }
     };
 
     micEl.addEventListener("click", () => {
-      if (listening) { recognition.stop(); return; }
+      if (listening) { attempts = []; recognition.stop(); return; }
       clearTimeout(resetTimer);
       resetAll();
       hintEl.textContent = T.listening;
-      recognition.lang = REC_LANG;
-      try { recognition.start(); }
-      catch (e) { hintEl.textContent = T.startError; }
+      attempts = [REC_LANG].concat(ALT_LANGS);
+      nextAttempt();
     });
   }
 
@@ -721,14 +745,14 @@
 
     if (!equation) {
       hintEl.textContent = T.notUnderstood;
-      return;
+      return false;
     }
 
     const value = safeEval(equation.replace(/%/g, "/100"));
     if (value === null) {
       historyEl.textContent = pretty(equation);
       hintEl.textContent = T.incomplete;
-      return;
+      return false;
     }
 
     historyEl.textContent = pretty(equation) + " =";
@@ -739,6 +763,7 @@
     hintEl.textContent = T.done;
     setBadge("on");
     resetTimer = setTimeout(resetAll, 2800);
+    return true;
   }
 
   render();
